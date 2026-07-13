@@ -202,11 +202,7 @@ async function calcCalorieBudget(currentWeight, todayExerciseCalories = 0) {
 
   const tdee = Math.round(bmr * activity);
   const exerciseCal = todayExerciseCalories || 0;
-
-  // 安全下限: 女性 1200, 男性 1500
-  const safeFloor = (gender === 'female') ? 1200 : 1500;
-  const rawLimit = Math.round(tdee + exerciseCal - dailyDeficit);
-  const limit = Math.max(rawLimit, safeFloor);
+  const limit = Math.round(tdee + exerciseCal - dailyDeficit);
 
   return {
     limit, deficit: dailyDeficit, days: remainingDays, reached: false,
@@ -275,11 +271,6 @@ function showBudgetDetail() {
       = <strong>${b.bmr} kcal/天</strong>
     </div>`;
   }
-
-  // 检查是否被安全下限钳制
-  const safeFloor = (b.gender === 'female') ? 1200 : 1500;
-  const rawLimit = Math.round(b.tdee + b.exerciseCal - b.deficit);
-  const wasClamped = rawLimit < safeFloor && b.limit === safeFloor;
 
   document.getElementById('budget-detail-body').innerHTML = `
     <div class="budget-detail-section">
@@ -350,9 +341,8 @@ function showBudgetDetail() {
       <div class="budget-detail-formula">
         每日热量上限 = TDEE + 运动消耗 - 每日缺口<br>
         = ${b.tdee} + ${b.exerciseCal} - ${b.deficit}<br>
-        ${wasClamped ? `= ${rawLimit} → 调整至安全下限<br>` : ''}= <strong>${b.limit} kcal/天</strong>
+        = <strong>${b.limit} kcal/天</strong>
       </div>
-      ${wasClamped ? `<div class="budget-detail-note">⚠️ 计算结果低于 ${safeFloor} kcal 安全下限，已自动调整至 ${safeFloor} kcal。建议适当降低减重速度或增加运动量。</div>` : ''}
       <div class="budget-detail-row result">
         <span class="detail-label">每日热量上限</span>
         <span class="detail-value">${b.limit} kcal</span>
