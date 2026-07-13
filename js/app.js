@@ -623,7 +623,32 @@ function setupSettings() {
     document.getElementById('setting-height').value = height || '';
     document.getElementById('setting-goal-weight').value = goalWeight || '';
     document.getElementById('setting-goal-date').value = goalDate || '';
+
+    // 显示/隐藏手动安装按钮
+    const installBtn = document.getElementById('btn-install-manual');
+    if (deferredPrompt || window.matchMedia('(display-mode: standalone)').matches) {
+      installBtn.style.display = 'none';
+    } else {
+      installBtn.style.display = 'block';
+    }
+
     openModal('modal-settings');
+  });
+
+  document.getElementById('btn-install-manual').addEventListener('click', async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const result = await deferredPrompt.userChoice;
+      deferredPrompt = null;
+      document.getElementById('btn-install-manual').style.display = 'none';
+      if (result.outcome === 'accepted') {
+        alert('安装成功！');
+      } else {
+        alert('已取消。你可以随时在浏览器菜单中选择"添加到桌面"来安装。');
+      }
+    } else {
+      alert('请在浏览器菜单中选择"添加到桌面"来安装。\n\nChrome: 菜单 → 添加到主屏幕\n夸克: 菜单 → 添加到桌面');
+    }
   });
 
   document.getElementById('btn-save-settings').addEventListener('click', async () => {

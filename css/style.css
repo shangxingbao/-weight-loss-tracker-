@@ -373,6 +373,21 @@ body {
 }
 .btn-primary:active { background: var(--green-dark); }
 
+.btn-install-manual {
+  width: 100%;
+  padding: 14px;
+  margin-top: 12px;
+  background: var(--card);
+  color: var(--green);
+  border: 2px solid var(--green);
+  border-radius: var(--radius-sm);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+.btn-install-manual:active { background: var(--green-light); }
+
 hr { border: none; border-top: 1px solid var(--divider); margin: 20px 0; }
 .about-text { text-align: center; font-size: 0.8rem; color: var(--text-secondary); line-height: 1.6; }
 
