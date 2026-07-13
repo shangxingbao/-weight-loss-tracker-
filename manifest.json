@@ -1,0 +1,18 @@
+{
+  "name": "轻盈笔记 - 减肥记录助手",
+  "short_name": "轻盈笔记",
+  "description": "精简减肥记录软件 — 记录体重、饮食、运动，追踪健康趋势",
+  "start_url": ".",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F5F7FA",
+  "theme_color": "#4CAF50",
+  "icons": [
+    {
+      "src": "icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

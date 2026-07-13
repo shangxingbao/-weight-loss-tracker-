@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#66BB6A"/>
+      <stop offset="100%" stop-color="#43A047"/>
+    </linearGradient>
+  </defs>
+  <!-- Background circle -->
+  <circle cx="256" cy="256" r="256" fill="url(#bg)"/>
+  <!-- Scale base -->
+  <rect x="156" y="380" width="200" height="20" rx="10" fill="#fff" opacity="0.9"/>
+  <!-- Scale pillar -->
+  <rect x="241" y="180" width="30" height="200" rx="6" fill="#fff" opacity="0.9"/>
+  <!-- Scale arm left -->
+  <rect x="100" y="170" width="156" height="18" rx="9" fill="#fff" opacity="0.9"/>
+  <!-- Scale arm right (shorter = lower weight) -->
+  <rect x="271" y="200" width="130" height="18" rx="9" fill="#fff" opacity="0.85"/>
+  <!-- Scale pan left -->
+  <ellipse cx="160" cy="188" rx="50" ry="14" fill="#fff" opacity="0.7"/>
+  <!-- Scale pan right -->
+  <ellipse cx="350" cy="218" rx="50" ry="14" fill="#fff" opacity="0.7"/>
+  <!-- Person silhouette on left -->
+  <circle cx="160" cy="165" r="22" fill="#fff"/>
+  <ellipse cx="160" cy="210" rx="35" ry="28" fill="#fff"/>
+  <!-- Trend line down -->
+  <polyline points="300,120 370,150 440,140" fill="none" stroke="#fff" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
+  <!-- Arrow down -->
+  <polygon points="440,140 425,125 435,145" fill="#fff" opacity="0.7"/>
+</svg>

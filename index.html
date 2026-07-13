@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#4CAF50">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="description" content="精简减肥记录助手 — 记录体重、饮食、运动，追踪健康趋势">
+  <title>轻盈笔记</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/icon.svg">
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <!-- ====== App Shell ====== -->
+  <header id="app-header">
+    <h1 id="page-title">轻盈笔记</h1>
+    <button id="btn-settings" class="icon-btn" aria-label="设置">⚙️</button>
+  </header>
+
+  <main id="app-main">
+    <!-- ====== 记录页 ====== -->
+    <section id="page-record" class="page active">
+      <!-- 体重摘要卡片 -->
+      <div class="card summary-card">
+        <div class="summary-weight">
+          <span class="summary-label">今日体重</span>
+          <span class="summary-value" id="today-weight">-- kg</span>
+          <span class="summary-change" id="weight-change"></span>
+        </div>
+        <div class="summary-stats">
+          <div class="stat-item">
+            <span class="stat-value" id="today-cal-in">0</span>
+            <span class="stat-label">摄入 kcal</span>
+          </div>
+          <div class="stat-divider"></div>
+          <div class="stat-item">
+            <span class="stat-value" id="today-cal-out">0</span>
+            <span class="stat-label">消耗 kcal</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 目标进度卡片 -->
+      <div class="card goal-card" id="goal-card">
+        <div class="goal-header">
+          <span>🎯 目标: <strong id="goal-weight-display">-- kg</strong></span>
+          <span id="goal-remaining"></span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" id="goal-progress-bar" style="width:0%"></div>
+        </div>
+        <p class="bmi-display" id="bmi-display"></p>
+      </div>
+
+      <!-- 快捷录入 -->
+      <div class="quick-actions">
+        <button class="action-btn weight-btn" id="btn-add-weight">
+          <span class="action-icon">⚖️</span>
+          <span class="action-text">记体重</span>
+        </button>
+        <button class="action-btn meal-btn" id="btn-add-meal">
+          <span class="action-icon">🍽️</span>
+          <span class="action-text">记饮食</span>
+        </button>
+        <button class="action-btn exercise-btn" id="btn-add-exercise">
+          <span class="action-icon">🏃</span>
+          <span class="action-text">记运动</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- ====== 历史页 ====== -->
+    <section id="page-history" class="page">
+      <div class="date-filter">
+        <button class="btn-date-nav" id="btn-prev-week">◀</button>
+        <span class="date-range" id="history-range">本周</span>
+        <button class="btn-date-nav" id="btn-next-week">▶</button>
+      </div>
+      <div class="history-list" id="history-list">
+        <p class="empty-hint">暂无记录，开始记录你的第一天吧 💪</p>
+      </div>
+    </section>
+
+    <!-- ====== 趋势页 ====== -->
+    <section id="page-trends" class="page">
+      <div class="chart-tabs">
+        <button class="chart-tab active" data-range="7">7天</button>
+        <button class="chart-tab" data-range="30">30天</button>
+        <button class="chart-tab" data-range="all">全部</button>
+      </div>
+      <div class="card chart-card">
+        <h3>📉 体重趋势</h3>
+        <div class="chart-wrapper"><canvas id="weightChart"></canvas></div>
+      </div>
+      <div class="card chart-card">
+        <h3>🔥 热量统计</h3>
+        <div class="chart-wrapper"><canvas id="calorieChart"></canvas></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ====== 底部导航 ====== -->
+  <nav id="tab-bar">
+    <button class="tab-btn active" data-page="page-record">
+      <span class="tab-icon">📋</span>
+      <span class="tab-label">记录</span>
+    </button>
+    <button class="tab-btn" data-page="page-history">
+      <span class="tab-icon">📅</span>
+      <span class="tab-label">历史</span>
+    </button>
+    <button class="tab-btn" data-page="page-trends">
+      <span class="tab-icon">📊</span>
+      <span class="tab-label">趋势</span>
+    </button>
+  </nav>
+
+  <!-- ====== 模态框: 体重录入 ====== -->
+  <div class="modal-overlay" id="modal-weight">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>⚖️ 记录体重</h2>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <label>日期</label>
+        <input type="date" id="weight-date" class="input-field">
+        <label>体重 (kg)</label>
+        <input type="number" id="weight-value" class="input-field" placeholder="例如: 75.5" step="0.1" min="20" max="300" inputmode="decimal">
+        <label>备注</label>
+        <input type="text" id="weight-note" class="input-field" placeholder="可选备注">
+        <button class="btn-primary" id="btn-save-weight">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== 模态框: 饮食录入 ====== -->
+  <div class="modal-overlay" id="modal-meal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>🍽️ 记录饮食</h2>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <label>日期</label>
+        <input type="date" id="meal-date" class="input-field">
+        <label>餐次</label>
+        <div class="chip-group" id="meal-type-chips">
+          <button class="chip active" data-value="早餐">早餐</button>
+          <button class="chip" data-value="午餐">午餐</button>
+          <button class="chip" data-value="晚餐">晚餐</button>
+          <button class="chip" data-value="加餐">加餐</button>
+        </div>
+        <label>食物</label>
+        <input type="text" id="meal-food" class="input-field" placeholder="例如: 鸡胸肉沙拉">
+        <label>热量 (kcal)</label>
+        <input type="number" id="meal-calories" class="input-field" placeholder="例如: 350" min="0" max="5000" inputmode="numeric">
+        <div class="preset-foods">
+          <span class="preset-label">快捷选择:</span>
+          <button class="preset-chip" data-food="米饭 (1碗)" data-cal="200">🍚 米饭 200</button>
+          <button class="preset-chip" data-food="鸡胸肉 (150g)" data-cal="200">🍗 鸡胸肉 200</button>
+          <button class="preset-chip" data-food="苹果 (1个)" data-cal="95">🍎 苹果 95</button>
+          <button class="preset-chip" data-food="鸡蛋 (2个)" data-cal="160">🥚 鸡蛋 160</button>
+          <button class="preset-chip" data-food="牛奶 (250ml)" data-cal="150">🥛 牛奶 150</button>
+          <button class="preset-chip" data-food="面包 (2片)" data-cal="180">🍞 面包 180</button>
+        </div>
+        <button class="btn-primary" id="btn-save-meal">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== 模态框: 运动录入 ====== -->
+  <div class="modal-overlay" id="modal-exercise">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>🏃 记录运动</h2>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <label>日期</label>
+        <input type="date" id="exercise-date" class="input-field">
+        <label>运动类型</label>
+        <div class="chip-group" id="exercise-type-chips">
+          <button class="chip active" data-value="跑步">🏃 跑步</button>
+          <button class="chip" data-value="走路">🚶 走路</button>
+          <button class="chip" data-value="骑行">🚴 骑行</button>
+          <button class="chip" data-value="游泳">🏊 游泳</button>
+          <button class="chip" data-value="力量训练">🏋️ 力量</button>
+          <button class="chip" data-value="自定义">📝 自定义</button>
+        </div>
+        <label>时长 (分钟)</label>
+        <input type="number" id="exercise-duration" class="input-field" placeholder="例如: 30" min="1" max="600" inputmode="numeric">
+        <label>消耗热量 (kcal) <small id="est-calories"></small></label>
+        <input type="number" id="exercise-calories" class="input-field" placeholder="自动估算或手动输入" min="0" max="5000" inputmode="numeric">
+        <button class="btn-primary" id="btn-save-exercise">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== 模态框: 设置 ====== -->
+  <div class="modal-overlay" id="modal-settings">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>⚙️ 设置</h2>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <label>身高 (cm)</label>
+        <input type="number" id="setting-height" class="input-field" placeholder="例如: 170" min="100" max="250" inputmode="numeric">
+        <label>目标体重 (kg)</label>
+        <input type="number" id="setting-goal-weight" class="input-field" placeholder="例如: 60" step="0.1" min="20" max="300" inputmode="decimal">
+        <label>目标达成日期</label>
+        <input type="date" id="setting-goal-date" class="input-field">
+        <button class="btn-primary" id="btn-save-settings">保存设置</button>
+        <hr>
+        <p class="about-text">轻盈笔记 v1.0 — 精简减肥记录助手<br>纯本地存储，无需联网</p>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/db.js"></script>
+  <script src="js/charts.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
