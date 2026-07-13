@@ -141,6 +141,20 @@ body {
   border-radius: 4px;
   transition: width 0.5s ease;
 }
+/* 热量预算 */
+.calorie-budget {
+  background: linear-gradient(135deg, #FFF8E1, #FFF3E0);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  margin-bottom: 8px;
+  text-align: center;
+}
+.budget-main { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+.budget-label { font-size: 0.8rem; color: #E65100; font-weight: 500; }
+.budget-value { font-size: 1.4rem; font-weight: 700; color: #E65100; }
+.budget-detail { font-size: 0.7rem; color: #BF360C; display: flex; justify-content: center; gap: 6px; }
+.budget-sep { opacity: 0.5; }
+
 .bmi-display { font-size: 0.8rem; color: var(--text-secondary); text-align: center; }
 
 /* ====== Quick Actions ====== */

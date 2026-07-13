@@ -163,18 +163,58 @@ async function refreshSummary() {
   await refreshGoalProgress(latestWeight);
 }
 
+/** 计算每日热量预算 */
+async function calcCalorieBudget(currentWeight) {
+  const goalWeight = parseFloat(await getSetting('goalWeight'));
+  const goalDate = await getSetting('goalDate');
+  const height = parseFloat(await getSetting('height'));
+  const gender = await getSetting('gender');
+  const age = parseInt(await getSetting('age'));
+  const activity = parseFloat(await getSetting('activity')) || 1.2;
+
+  if (!goalWeight || !goalDate || !currentWeight) return null;
+
+  const remainingKg = currentWeight - goalWeight;
+  if (remainingKg <= 0) return { limit: null, deficit: null, days: null, reached: true };
+
+  const today = new Date();
+  const target = new Date(goalDate);
+  const remainingDays = Math.ceil((target - today) / (1000 * 60 * 60 * 24));
+  if (remainingDays <= 0) return { limit: null, deficit: null, days: 0, reached: false };
+
+  const totalDeficit = remainingKg * 7700;
+  const dailyDeficit = Math.round(totalDeficit / remainingDays);
+
+  // BMR: Mifflin-St Jeor 公式
+  let bmr;
+  if (height && age && gender) {
+    if (gender === 'male') {
+      bmr = 10 * currentWeight + 6.25 * height - 5 * age + 5;
+    } else {
+      bmr = 10 * currentWeight + 6.25 * height - 5 * age - 161;
+    }
+  } else {
+    // 简化估算: 体重(kg) × 23
+    bmr = currentWeight * 23;
+  }
+
+  const tdee = Math.round(bmr * activity);
+  const limit = Math.round(tdee - dailyDeficit);
+
+  return { limit, deficit: dailyDeficit, days: remainingDays, reached: false };
+}
+
 /** 刷新目标进度 */
 async function refreshGoalProgress(currentWeight) {
   const goalWeight = await getSetting('goalWeight');
   const goalDate = await getSetting('goalDate');
   const height = await getSetting('height');
 
-  const goalCard = document.getElementById('goal-card');
-
   if (!goalWeight) {
     document.getElementById('goal-weight-display').textContent = '未设定';
     document.getElementById('goal-remaining').textContent = '';
     document.getElementById('goal-progress-bar').style.width = '0%';
+    document.getElementById('calorie-budget').style.display = 'none';
     document.getElementById('bmi-display').textContent = height ? '请在设置中设定目标体重' : '请在设置中设定身高和目标';
     return;
   }
@@ -197,6 +237,23 @@ async function refreshGoalProgress(currentWeight) {
     } else {
       document.getElementById('goal-remaining').textContent = `还需减 ${remaining} kg`;
     }
+  }
+
+  // 热量预算
+  const budget = await calcCalorieBudget(currentWeight);
+  const budgetEl = document.getElementById('calorie-budget');
+  if (budget && budget.limit && budget.limit > 0) {
+    budgetEl.style.display = 'block';
+    document.getElementById('budget-limit').textContent = `${budget.limit} kcal`;
+    document.getElementById('budget-deficit').textContent = `每日需赤字 ${budget.deficit} kcal`;
+    document.getElementById('budget-days').textContent = `剩余 ${budget.days} 天`;
+  } else if (budget && budget.reached) {
+    budgetEl.style.display = 'block';
+    document.getElementById('budget-limit').textContent = '已达成 🎉';
+    document.getElementById('budget-deficit').textContent = '恭喜达到目标体重';
+    document.getElementById('budget-days').textContent = '';
+  } else {
+    budgetEl.style.display = 'none';
   }
 
   // BMI
@@ -619,10 +676,24 @@ function setupSettings() {
     const height = await getSetting('height');
     const goalWeight = await getSetting('goalWeight');
     const goalDate = await getSetting('goalDate');
+    const gender = await getSetting('gender');
+    const age = await getSetting('age');
+    const activity = await getSetting('activity');
 
     document.getElementById('setting-height').value = height || '';
     document.getElementById('setting-goal-weight').value = goalWeight || '';
     document.getElementById('setting-goal-date').value = goalDate || '';
+    document.getElementById('setting-age').value = age || '';
+
+    // 性别 chip
+    document.querySelectorAll('#setting-gender-chips .chip').forEach(c => {
+      c.classList.toggle('active', c.dataset.value === (gender || 'male'));
+    });
+
+    // 活动量 chip
+    document.querySelectorAll('#setting-activity-chips .chip').forEach(c => {
+      c.classList.toggle('active', c.dataset.value === (activity || '1.375'));
+    });
 
     // 已安装为独立应用则隐藏安装按钮
     const installBtn = document.getElementById('btn-install-manual');
@@ -633,6 +704,22 @@ function setupSettings() {
     }
 
     openModal('modal-settings');
+  });
+
+  // 性别 chip 点击切换
+  document.querySelectorAll('#setting-gender-chips .chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      document.querySelectorAll('#setting-gender-chips .chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+    });
+  });
+
+  // 活动量 chip 点击切换
+  document.querySelectorAll('#setting-activity-chips .chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      document.querySelectorAll('#setting-activity-chips .chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+    });
   });
 
   document.getElementById('btn-install-manual').addEventListener('click', async () => {
@@ -666,10 +753,19 @@ function setupSettings() {
     const height = document.getElementById('setting-height').value;
     const goalWeight = document.getElementById('setting-goal-weight').value;
     const goalDate = document.getElementById('setting-goal-date').value;
+    const age = document.getElementById('setting-age').value;
+
+    const genderChip = document.querySelector('#setting-gender-chips .chip.active');
+    const activityChip = document.querySelector('#setting-activity-chips .chip.active');
+    const gender = genderChip ? genderChip.dataset.value : 'male';
+    const activity = activityChip ? activityChip.dataset.value : '1.375';
 
     if (height) await saveSetting('height', height);
     if (goalWeight) await saveSetting('goalWeight', goalWeight);
     if (goalDate) await saveSetting('goalDate', goalDate);
+    if (age) await saveSetting('age', age);
+    await saveSetting('gender', gender);
+    await saveSetting('activity', activity);
 
     closeModal('modal-settings');
     await refreshSummary();

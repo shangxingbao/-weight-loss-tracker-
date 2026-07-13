@@ -53,6 +53,17 @@
         <div class="progress-bar">
           <div class="progress-fill" id="goal-progress-bar" style="width:0%"></div>
         </div>
+        <div class="calorie-budget" id="calorie-budget" style="display:none">
+          <div class="budget-main">
+            <span class="budget-label">🍎 每日热量上限</span>
+            <span class="budget-value" id="budget-limit">--</span>
+          </div>
+          <div class="budget-detail">
+            <span id="budget-deficit"></span>
+            <span class="budget-sep">|</span>
+            <span id="budget-days"></span>
+          </div>
+        </div>
         <p class="bmi-display" id="bmi-display"></p>
       </div>
 
@@ -215,6 +226,20 @@
         <input type="number" id="setting-goal-weight" class="input-field" placeholder="例如: 60" step="0.1" min="20" max="300" inputmode="decimal">
         <label>目标达成日期</label>
         <input type="date" id="setting-goal-date" class="input-field">
+        <label>性别</label>
+        <div class="chip-group" id="setting-gender-chips">
+          <button class="chip" data-value="male">男</button>
+          <button class="chip" data-value="female">女</button>
+        </div>
+        <label>年龄</label>
+        <input type="number" id="setting-age" class="input-field" placeholder="例如: 30" min="10" max="120" inputmode="numeric">
+        <label>日常活动量</label>
+        <div class="chip-group" id="setting-activity-chips">
+          <button class="chip" data-value="1.2">久坐少动</button>
+          <button class="chip active" data-value="1.375">轻度活动</button>
+          <button class="chip" data-value="1.55">中度活动</button>
+          <button class="chip" data-value="1.725">高度活动</button>
+        </div>
         <button class="btn-primary" id="btn-save-settings">保存设置</button>
         <button class="btn-install-manual" id="btn-install-manual">📲 安装到桌面</button>
         <hr>
