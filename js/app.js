@@ -624,9 +624,9 @@ function setupSettings() {
     document.getElementById('setting-goal-weight').value = goalWeight || '';
     document.getElementById('setting-goal-date').value = goalDate || '';
 
-    // 显示/隐藏手动安装按钮
+    // 已安装为独立应用则隐藏安装按钮
     const installBtn = document.getElementById('btn-install-manual');
-    if (deferredPrompt || window.matchMedia('(display-mode: standalone)').matches) {
+    if (window.matchMedia('(display-mode: standalone)').matches) {
       installBtn.style.display = 'none';
     } else {
       installBtn.style.display = 'block';
@@ -637,17 +637,28 @@ function setupSettings() {
 
   document.getElementById('btn-install-manual').addEventListener('click', async () => {
     if (deferredPrompt) {
+      // 浏览器支持 PWA，直接触发安装
       deferredPrompt.prompt();
       const result = await deferredPrompt.userChoice;
       deferredPrompt = null;
-      document.getElementById('btn-install-manual').style.display = 'none';
       if (result.outcome === 'accepted') {
-        alert('安装成功！');
+        alert('安装成功！🎉');
       } else {
-        alert('已取消。你可以随时在浏览器菜单中选择"添加到桌面"来安装。');
+        alert('已取消。你可以随时回来重新安装。');
       }
     } else {
-      alert('请在浏览器菜单中选择"添加到桌面"来安装。\n\nChrome: 菜单 → 添加到主屏幕\n夸克: 菜单 → 添加到桌面');
+      // 浏览器不支持 PWA（如夸克），给出切换指引
+      const ua = navigator.userAgent;
+      const isAndroid = /Android/i.test(ua);
+      if (isAndroid) {
+        alert(
+          '当前浏览器不支持一键安装 PWA。\n\n' +
+          '👉 推荐换成 Chrome 或 Edge 浏览器打开，安装更顺畅。\n\n' +
+          '或试试当前浏览器的菜单中是否有"添加到桌面"选项。'
+        );
+      } else {
+        alert('请使用 Chrome/Edge/Safari 浏览器打开，选择"添加到主屏幕"即可安装。');
+      }
     }
   });
 
