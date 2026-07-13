@@ -63,6 +63,7 @@ function formatWeekRange(week) {
 
 // ====== 全局状态 ======
 let historyWeekOffset = 0;
+let currentBudget = null; // 缓存热量预算详情数据
 
 // ====== 页面切换 ======
 
@@ -160,11 +161,11 @@ async function refreshSummary() {
   document.getElementById('today-cal-out').textContent = totalOut;
 
   // 目标进度
-  await refreshGoalProgress(latestWeight);
+  await refreshGoalProgress(latestWeight, totalOut);
 }
 
 /** 计算每日热量预算 */
-async function calcCalorieBudget(currentWeight) {
+async function calcCalorieBudget(currentWeight, todayExerciseCalories = 0) {
   const goalWeight = parseFloat(await getSetting('goalWeight'));
   const goalDate = await getSetting('goalDate');
   const height = parseFloat(await getSetting('height'));
@@ -187,7 +188,8 @@ async function calcCalorieBudget(currentWeight) {
 
   // BMR: Mifflin-St Jeor 公式
   let bmr;
-  if (height && age && gender) {
+  const fallbackBmr = !(height && age && gender);
+  if (!fallbackBmr) {
     if (gender === 'male') {
       bmr = 10 * currentWeight + 6.25 * height - 5 * age + 5;
     } else {
@@ -199,13 +201,174 @@ async function calcCalorieBudget(currentWeight) {
   }
 
   const tdee = Math.round(bmr * activity);
-  const limit = Math.round(tdee - dailyDeficit);
+  const exerciseCal = todayExerciseCalories || 0;
 
-  return { limit, deficit: dailyDeficit, days: remainingDays, reached: false };
+  // 安全下限: 女性 1200, 男性 1500
+  const safeFloor = (gender === 'female') ? 1200 : 1500;
+  const rawLimit = Math.round(tdee + exerciseCal - dailyDeficit);
+  const limit = Math.max(rawLimit, safeFloor);
+
+  return {
+    limit, deficit: dailyDeficit, days: remainingDays, reached: false,
+    // 详情弹框所需的中间计算值
+    currentWeight, goalWeight, goalDate,
+    remainingKg: Math.round(remainingKg * 10) / 10,
+    totalDeficit,
+    height, gender, age, activity,
+    bmr: Math.round(bmr), tdee,
+    exerciseCal, fallbackBmr,
+  };
+}
+
+/** 显示热量预算详细计算过程 */
+function showBudgetDetail() {
+  if (!currentBudget) return;
+
+  const b = currentBudget;
+
+  // 目标已达成
+  if (b.reached) {
+    document.getElementById('budget-detail-body').innerHTML = `
+      <div class="budget-detail-section">
+        <p style="text-align:center; font-size:1.1rem; padding:16px;">🎉 恭喜！您已达到目标体重，无需热量预算。</p>
+      </div>
+    `;
+    openModal('modal-budget-detail');
+    return;
+  }
+
+  // 缺少关键数据
+  if (b.limit === null) {
+    document.getElementById('budget-detail-body').innerHTML = `
+      <div class="budget-detail-section">
+        <p style="text-align:center; color:var(--text-secondary); padding:16px;">
+          请先在设置中填写目标体重、目标日期并记录今日体重。
+        </p>
+      </div>
+    `;
+    openModal('modal-budget-detail');
+    return;
+  }
+
+  // 活动量标签映射
+  const activityLabels = { '1.2': '久坐少动', '1.375': '轻度活动', '1.55': '中度活动', '1.725': '高度活动' };
+  const activityLabel = activityLabels[String(b.activity)] || b.activity;
+
+  // BMR 公式展示
+  let bmrFormulaHtml;
+  if (b.fallbackBmr) {
+    bmrFormulaHtml = `<div class="budget-detail-formula">
+      ⚠️ 缺少身高/年龄/性别数据，使用简化公式<br>
+      <strong>BMR = 体重 × 23</strong><br>
+      ${b.currentWeight} × 23 = <strong>${b.bmr} kcal/天</strong>
+    </div>`;
+  } else {
+    const coeffA = Math.round(10 * b.currentWeight);
+    const coeffB = Math.round(6.25 * b.height);
+    const coeffC = 5 * b.age;
+    const genderLabel = b.gender === 'male' ? '男性' : '女性';
+    bmrFormulaHtml = `<div class="budget-detail-formula">
+      <strong>Mifflin-St Jeor 公式 (${genderLabel})</strong><br>
+      BMR = 10×体重 + 6.25×身高 - 5×年龄 ${b.gender === 'male' ? '+ 5' : '- 161'}<br>
+      = 10×${b.currentWeight} + 6.25×${b.height} - 5×${b.age} ${b.gender === 'male' ? '+ 5' : '- 161'}<br>
+      = ${coeffA} + ${coeffB} - ${coeffC} ${b.gender === 'male' ? '+ 5' : '- 161'}<br>
+      = <strong>${b.bmr} kcal/天</strong>
+    </div>`;
+  }
+
+  // 检查是否被安全下限钳制
+  const safeFloor = (b.gender === 'female') ? 1200 : 1500;
+  const rawLimit = Math.round(b.tdee + b.exerciseCal - b.deficit);
+  const wasClamped = rawLimit < safeFloor && b.limit === safeFloor;
+
+  document.getElementById('budget-detail-body').innerHTML = `
+    <div class="budget-detail-section">
+      <h3>📋 基本信息</h3>
+      <div class="budget-detail-row">
+        <span class="detail-label">当前体重</span>
+        <span class="detail-value">${b.currentWeight} kg</span>
+      </div>
+      <div class="budget-detail-row">
+        <span class="detail-label">目标体重</span>
+        <span class="detail-value">${b.goalWeight} kg</span>
+      </div>
+      <div class="budget-detail-row">
+        <span class="detail-label">目标日期</span>
+        <span class="detail-value">${b.goalDate}</span>
+      </div>
+      <div class="budget-detail-row">
+        <span class="detail-label">还需减重</span>
+        <span class="detail-value">${b.remainingKg} kg</span>
+      </div>
+      <div class="budget-detail-row">
+        <span class="detail-label">剩余天数</span>
+        <span class="detail-value">${b.days} 天</span>
+      </div>
+    </div>
+
+    <div class="budget-detail-section">
+      <h3>🔥 基础代谢 (BMR)</h3>
+      ${bmrFormulaHtml}
+      <div class="budget-detail-row">
+        <span class="detail-label">BMR</span>
+        <span class="detail-value">${b.bmr} kcal/天</span>
+      </div>
+      <div class="budget-detail-row">
+        <span class="detail-label">活动系数</span>
+        <span class="detail-value">${b.activity} (${activityLabel})</span>
+      </div>
+      <div class="budget-detail-row">
+        <span class="detail-label">TDEE (维持体重)</span>
+        <span class="detail-value">${b.tdee} kcal/天</span>
+      </div>
+    </div>
+
+    <div class="budget-detail-section">
+      <h3>🏃 运动消耗</h3>
+      <div class="budget-detail-row">
+        <span class="detail-label">今日运动消耗</span>
+        <span class="detail-value">${b.exerciseCal} kcal</span>
+      </div>
+    </div>
+
+    <div class="budget-detail-section">
+      <h3>📉 热量缺口</h3>
+      <div class="budget-detail-formula">
+        总需减热量 = 还需减重 × 7700 kcal/kg<br>
+        = ${b.remainingKg} × 7700<br>
+        = <strong>${b.totalDeficit} kcal</strong>
+      </div>
+      <div class="budget-detail-formula">
+        每日所需缺口 = 总需减热量 ÷ 剩余天数<br>
+        = ${b.totalDeficit} ÷ ${b.days}<br>
+        = <strong>${b.deficit} kcal/天</strong>
+      </div>
+    </div>
+
+    <div class="budget-detail-section">
+      <h3>🎯 最终预算</h3>
+      <div class="budget-detail-formula">
+        每日热量上限 = TDEE + 运动消耗 - 每日缺口<br>
+        = ${b.tdee} + ${b.exerciseCal} - ${b.deficit}<br>
+        ${wasClamped ? `= ${rawLimit} → 调整至安全下限<br>` : ''}= <strong>${b.limit} kcal/天</strong>
+      </div>
+      ${wasClamped ? `<div class="budget-detail-note">⚠️ 计算结果低于 ${safeFloor} kcal 安全下限，已自动调整至 ${safeFloor} kcal。建议适当降低减重速度或增加运动量。</div>` : ''}
+      <div class="budget-detail-row result">
+        <span class="detail-label">每日热量上限</span>
+        <span class="detail-value">${b.limit} kcal</span>
+      </div>
+    </div>
+
+    <div class="budget-detail-note">
+      💡 运动消耗会自动增加当日热量预算，帮助你维持健康的减重节奏。
+    </div>
+  `;
+
+  openModal('modal-budget-detail');
 }
 
 /** 刷新目标进度 */
-async function refreshGoalProgress(currentWeight) {
+async function refreshGoalProgress(currentWeight, todayExerciseCalories = 0) {
   const goalWeight = await getSetting('goalWeight');
   const goalDate = await getSetting('goalDate');
   const height = await getSetting('height');
@@ -240,7 +403,8 @@ async function refreshGoalProgress(currentWeight) {
   }
 
   // 热量预算
-  const budget = await calcCalorieBudget(currentWeight);
+  const budget = await calcCalorieBudget(currentWeight, todayExerciseCalories);
+  currentBudget = budget; // 缓存供详情弹框使用
   const budgetEl = document.getElementById('calorie-budget');
   if (budget && budget.limit && budget.limit > 0) {
     budgetEl.style.display = 'block';
@@ -850,6 +1014,21 @@ async function initApp() {
 
   // 设置趋势 Tab
   setupTrendsTabs();
+
+  // 设置热量预算详情点击
+  const budgetLimit = document.getElementById('budget-limit');
+  if (budgetLimit) {
+    budgetLimit.addEventListener('click', showBudgetDetail);
+  }
+  const calorieBudgetSection = document.getElementById('calorie-budget');
+  if (calorieBudgetSection) {
+    calorieBudgetSection.addEventListener('click', (e) => {
+      // 避免重复触发（budget-limit 点击事件冒泡到此）
+      if (e.target === e.currentTarget || e.target.closest('.budget-main')) {
+        showBudgetDetail();
+      }
+    });
+  }
 
   // 设置 PWA 安装
   setupPWAInstall();

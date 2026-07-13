@@ -154,6 +154,9 @@ body {
 .budget-value { font-size: 1.4rem; font-weight: 700; color: #E65100; }
 .budget-detail { font-size: 0.7rem; color: #BF360C; display: flex; justify-content: center; gap: 6px; }
 .budget-sep { opacity: 0.5; }
+.calorie-budget { cursor: pointer; }
+.budget-value { cursor: pointer; transition: opacity 0.15s; }
+.budget-value:active { opacity: 0.7; }
 
 .bmi-display { font-size: 0.8rem; color: var(--text-secondary); text-align: center; }
 
@@ -438,4 +441,79 @@ hr { border: none; border-top: 1px solid var(--divider); margin: 20px 0; }
 #install-banner .btn-dismiss {
   background: none; border: none; color: var(--text-secondary);
   font-size: 1.2rem; cursor: pointer; padding: 4px;
+}
+
+/* ====== Budget Detail Modal ====== */
+.budget-detail-section {
+  margin-bottom: 12px;
+}
+.budget-detail-section h3 {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--green-dark);
+  margin-bottom: 6px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--divider);
+}
+.budget-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  font-size: 0.85rem;
+  border-bottom: 1px solid var(--bg);
+}
+.budget-detail-row .detail-label {
+  color: var(--text-secondary);
+}
+.budget-detail-row .detail-value {
+  font-weight: 600;
+  color: var(--text);
+}
+.budget-detail-row.highlight {
+  background: linear-gradient(135deg, #FFF8E1, #FFF3E0);
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin: 4px 0;
+  border-bottom: none;
+}
+.budget-detail-row.highlight .detail-value {
+  color: #E65100;
+  font-size: 1.1rem;
+}
+.budget-detail-row.result {
+  border-top: 2px solid var(--green);
+  margin-top: 8px;
+  padding-top: 10px;
+}
+.budget-detail-row.result .detail-label {
+  color: var(--green-dark);
+  font-weight: 700;
+}
+.budget-detail-row.result .detail-value {
+  color: var(--green-dark);
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+.budget-detail-row.warning .detail-value {
+  color: var(--danger);
+}
+.budget-detail-formula {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  background: var(--bg);
+  border-radius: 8px;
+  padding: 10px;
+  margin: 8px 0;
+  line-height: 1.6;
+  font-family: monospace;
+}
+.budget-detail-note {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  text-align: center;
+  margin-top: 8px;
+  padding: 8px;
+  background: var(--bg);
+  border-radius: 8px;
 }
